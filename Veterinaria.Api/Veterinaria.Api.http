@@ -1,0 +1,221 @@
+### Requiere la extensión "REST Client" (humao.rest-client) en VS Code.
+### Ejecuta las peticiones de arriba hacia abajo con "Send Request".
+### Si repites las pruebas, vuelve a correr Database/Veterinaria.sql para reiniciar los datos.
+### Los ids asumen los datos de ejemplo: propietarios 1-4 y mascotas 1-8.
+
+@host = https://localhost:7080
+
+############################################################
+# 200 OK  - GET que devuelve DTOs
+############################################################
+
+### Listar propietarios
+GET {{host}}/api/propietarios
+
+### Filtro por query string (apellido)
+GET {{host}}/api/propietarios?apellido=Torres
+
+### Filtro por query string (dni)
+GET {{host}}/api/propietarios?dni=45879632
+
+### Obtener propietario por id
+GET {{host}}/api/propietarios/1
+
+### Ruta anidada: mascotas del propietario 1
+GET {{host}}/api/propietarios/1/mascotas
+
+### Listar mascotas
+GET {{host}}/api/mascotas
+
+### Filtros combinados: especie + peso mínimo
+GET {{host}}/api/mascotas?especie=Perro&pesoMinimo=20
+
+### Filtro por nombre y propietario
+GET {{host}}/api/mascotas?nombre=lu&propietarioId=1
+
+### Obtener mascota por id
+GET {{host}}/api/mascotas/1
+
+############################################################
+# 201 Created - POST correcto (revisa el header Location)
+############################################################
+
+### Crear propietario (será el id 5)
+POST {{host}}/api/propietarios
+Content-Type: application/json
+
+{
+  "dni": "70000001",
+  "nombres": "Jorge",
+  "apellidos": "Salazar Rojas",
+  "telefono": "999111222",
+  "email": "jorge.salazar@email.com"
+}
+
+### Crear mascota para el propietario 4 (será el id 9)
+POST {{host}}/api/mascotas
+Content-Type: application/json
+
+{
+  "propietarioId": 4,
+  "nombre": "Simba",
+  "especie": "Gato",
+  "raza": "Mestizo",
+  "fechaNacimiento": "2023-04-12",
+  "pesoKg": 3.6,
+  "microchip": "985112345678999"
+}
+
+############################################################
+# 204 No Content - PUT y DELETE correctos
+############################################################
+
+### Actualizar propietario 5
+PUT {{host}}/api/propietarios/5
+Content-Type: application/json
+
+{
+  "dni": "70000001",
+  "nombres": "Jorge Luis",
+  "apellidos": "Salazar Rojas",
+  "telefono": "999111333",
+  "email": "jorge.salazar@email.com"
+}
+
+### Actualizar mascota 9
+PUT {{host}}/api/mascotas/9
+Content-Type: application/json
+
+{
+  "nombre": "Simba II",
+  "especie": "Gato",
+  "raza": "Mestizo",
+  "fechaNacimiento": "2023-04-12",
+  "pesoKg": 4.1,
+  "microchip": "985112345678999"
+}
+
+### Eliminar mascota 9
+DELETE {{host}}/api/mascotas/9
+
+### Eliminar propietario 5 (no tiene mascotas)
+DELETE {{host}}/api/propietarios/5
+
+############################################################
+# 400 Bad Request - datos inválidos del DTO de entrada
+############################################################
+
+### DNI inválido, nombres vacío y email mal formado
+POST {{host}}/api/propietarios
+Content-Type: application/json
+
+{
+  "dni": "123",
+  "nombres": "",
+  "apellidos": "Pérez",
+  "email": "no-es-un-correo"
+}
+
+### Mascota con peso fuera de rango y sin fecha de nacimiento
+POST {{host}}/api/mascotas
+Content-Type: application/json
+
+{
+  "propietarioId": 2,
+  "nombre": "Max",
+  "especie": "Perro",
+  "pesoKg": 500
+}
+
+############################################################
+# 404 Not Found - el recurso no existe
+############################################################
+
+### Propietario inexistente
+GET {{host}}/api/propietarios/999
+
+### Mascota inexistente
+GET {{host}}/api/mascotas/999
+
+### Ruta anidada con propietario inexistente
+GET {{host}}/api/propietarios/999/mascotas
+
+### PUT sobre mascota inexistente
+PUT {{host}}/api/mascotas/999
+Content-Type: application/json
+
+{
+  "nombre": "Fantasma",
+  "especie": "Perro",
+  "fechaNacimiento": "2020-01-01",
+  "pesoKg": 10
+}
+
+### DELETE sobre propietario inexistente
+DELETE {{host}}/api/propietarios/999
+
+### Crear mascota para un propietario que no existe
+POST {{host}}/api/mascotas
+Content-Type: application/json
+
+{
+  "propietarioId": 999,
+  "nombre": "Sin dueño",
+  "especie": "Perro",
+  "fechaNacimiento": "2022-01-01",
+  "pesoKg": 8
+}
+
+############################################################
+# 409 Conflict - reglas de negocio incumplidas
+############################################################
+
+### Regla 1: DNI duplicado (el 45879632 ya existe)
+POST {{host}}/api/propietarios
+Content-Type: application/json
+
+{
+  "dni": "45879632",
+  "nombres": "Otro",
+  "apellidos": "Duplicado"
+}
+
+### Regla 2: eliminar propietario con mascotas (el 1 tiene 5)
+DELETE {{host}}/api/propietarios/1
+
+### Regla 3: máximo 5 mascotas (el propietario 1 ya tiene 5)
+POST {{host}}/api/mascotas
+Content-Type: application/json
+
+{
+  "propietarioId": 1,
+  "nombre": "Sexta",
+  "especie": "Perro",
+  "fechaNacimiento": "2022-01-01",
+  "pesoKg": 9
+}
+
+### Regla 4: fecha de nacimiento futura
+POST {{host}}/api/mascotas
+Content-Type: application/json
+
+{
+  "propietarioId": 3,
+  "nombre": "Futuro",
+  "especie": "Perro",
+  "fechaNacimiento": "2999-01-01",
+  "pesoKg": 9
+}
+
+### Regla 5: microchip repetido (985112345678901 es de Firulais)
+POST {{host}}/api/mascotas
+Content-Type: application/json
+
+{
+  "propietarioId": 3,
+  "nombre": "Clon",
+  "especie": "Perro",
+  "fechaNacimiento": "2022-01-01",
+  "pesoKg": 9,
+  "microchip": "985112345678901"
+}
